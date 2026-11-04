@@ -259,8 +259,8 @@ jobs:
         run: cargo test --manifest-path services/helper/Cargo.toml --features windows-service
 
   build:
-    # A main push (upstream sync), a tag push or a manual run builds artifacts here.
-    if: (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))) || github.event_name == 'workflow_dispatch'
+    # Only an upstream release tag (or a manual run) produces artifacts.
+    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       HAS_ANDROID_KEYSTORE: ${{ secrets.KEYSTORE != '' }}
@@ -337,7 +337,7 @@ jobs:
           overwrite: true
 
   upload:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
     needs: [ build, dart, plugins, go, android, rust, windows-helper-test ]

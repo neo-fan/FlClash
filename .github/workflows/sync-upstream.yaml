@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
+  actions: write
 
 concurrency:
   group: sync-upstream
@@ -22,49 +22,49 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Merge upstream and bump version
+      - name: Read the upstream release tag
+        id: upstream
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "tag=$(gh api repos/chen08209/FlClash/releases/latest --jq '.tag_name')" >> "$GITHUB_OUTPUT"
+
+      - name: Sync code and tag the fork
         id: prepare
-        shell: bash
+        env:
+          UPSTREAM_TAG: ${{ steps.upstream.outputs.tag }}
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git remote add upstream https://github.com/chen08209/FlClash.git
           git fetch --no-tags upstream main
+          git checkout -B main origin/main
 
-          if git merge-base --is-ancestor upstream/main origin/main; then
+          if ! git merge-base --is-ancestor upstream/main HEAD; then
+            if ! git merge --no-edit -m "Merge upstream main" upstream/main; then
+              echo "::error::Conflicts with the fork build customizations: $(git diff --name-only --diff-filter=U | tr '\n' ' ')"
+              git merge --abort || true
+              exit 1
+            fi
+            git push origin main:main
+          fi
+
+          if git rev-parse -q --verify "refs/tags/$UPSTREAM_TAG" >/dev/null; then
             echo 'changed=false' >> "$GITHUB_OUTPUT"
-            echo 'Upstream has no new commits.'
+            echo "Already released $UPSTREAM_TAG."
             exit 0
           fi
 
-          git checkout -B sync/upstream origin/main
-          if ! git merge --no-edit upstream/main; then
-            conflicts="$(git diff --name-only --diff-filter=U | tr '\n' ' ')"
-            git merge --abort || true
-            echo "::error::Upstream conflicts with the fork customizations: $conflicts"
-            echo '::error::Resolve the merge by hand and push sync/upstream yourself.'
-            exit 1
-          fi
-
-          bash tool/bump_version.sh all
-          version="$(sed -n 's/^version: \([0-9]*\.[0-9]*\.[0-9]*\).*/\1/p' pubspec.yaml)"
-          git add pubspec.yaml
-          git commit -m "chore(release): v$version"
-          git push --force-with-lease origin sync/upstream:sync/upstream
+          # Tag the fork commit, not the upstream one: the tag must carry the
+          # local application id and the arm64-only build configuration.
+          git tag "$UPSTREAM_TAG"
+          git push origin "$UPSTREAM_TAG"
           echo 'changed=true' >> "$GITHUB_OUTPUT"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      - name: Open pull request
+      - name: Trigger the release build
         if: steps.prepare.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.prepare.outputs.version }}
-        run: |
-          title="Sync upstream and release v$VERSION"
-          body="Automated upstream sync and version bump. Merging into main builds the arm64 APK and publishes a GitHub Release."
-          if [ "$(gh pr list --head sync/upstream --base main --state open --json number --jq 'length')" = '0' ]; then
-            gh pr create --head sync/upstream --base main --title "$title" --body "$body"
-          else
-            gh pr edit sync/upstream --title "$title" --body "$body"
-          fi
+          TAG: ${{ steps.upstream.outputs.tag }}
+        run: gh workflow run build --ref "$TAG"
