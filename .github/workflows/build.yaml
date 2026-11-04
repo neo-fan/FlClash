@@ -439,11 +439,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.release_tag.outputs.tag }}
         run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" ./dist/* --clobber
-          else
-            gh release create "$TAG" ./dist/* \
+          # gh release create with inline assets uploads into a draft release,
+          # which the Actions GITHUB_TOKEN cannot do (cli/cli#3029). Publish first.
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
               --target "$GITHUB_SHA" \
               --title "$TAG" \
               --notes-file release.md
           fi
+          for attempt in 1 2 3; do
+            if gh release upload "$TAG" ./dist/* --clobber; then
+              exit 0
+            fi
+            sleep $((attempt * 5))
+          done
+          exit 1
