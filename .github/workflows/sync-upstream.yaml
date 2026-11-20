@@ -66,10 +66,17 @@ jobs:
           git push origin "$UPSTREAM_TAG"
           echo 'changed=true' >> "$GITHUB_OUTPUT"
 
-      # A conflict used to stop the daily sync silently, which is how the fork
-      # sat a release behind without anyone noticing.
-      - name: Report a blocked sync
-        if: failure() && steps.prepare.outcome == 'failure'
+      - name: Trigger the release build
+        if: steps.prepare.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.upstream.outputs.tag }}
+        run: gh workflow run build --ref "$TAG"
+
+      # A conflict or a failed dispatch used to stop the daily sync silently,
+      # which is how the fork sat a release behind without anyone noticing.
+      - name: Report a failed sync
+        if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
           CONFLICT: ${{ steps.prepare.outputs.conflict }}
@@ -79,19 +86,12 @@ jobs:
           if [ -n "${CONFLICT:-}" ]; then
             reason="Merging upstream/main conflicts in: ${CONFLICT}"
           else
-            reason='The sync step failed; see the run log for the failing command.'
+            reason='The run failed before it could tag or start the build; see the log.'
           fi
-          body="$(printf '%s\n\nRun: %s\n\nResolve it by hand, then this job resumes on its own.' "$reason" "$RUN_URL")"
+          body="$(printf '%s\n\nRun: %s\n\nResolve it by hand, then this job resumes on its own.\n\nIf starting the build answered 422 `Actions has been disabled`, that is the fork activation flag: turn Actions off and on again in Settings, Actions, General.' "$reason" "$RUN_URL")"
           number="$(gh issue list --state open --search "$title in:title" --json number --jq '.[0].number // empty')"
           if [ -n "$number" ]; then
             gh issue comment "$number" --body "$body"
           else
             gh issue create --title "$title" --body "$body"
           fi
-
-      - name: Trigger the release build
-        if: steps.prepare.outputs.changed == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.upstream.outputs.tag }}
-        run: gh workflow run build --ref "$TAG"

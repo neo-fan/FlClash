@@ -1,8 +1,11 @@
 # freezed emits lines of trailing spaces, and generated code is never edited by hand.
 lib/**/generated/** -whitespace
 
-# The fork owns these two files wholesale, so an upstream sync keeps this side
+# The fork owns these files wholesale, so an upstream sync keeps this side
 # instead of conflicting. Merging locally needs `git config merge.ours.driver true`;
 # .github/workflows/sync-upstream.yaml sets it before it merges.
 .github/workflows/build.yaml merge=ours
 .github/release_template.md merge=ours
+# Upstream's release contract test packages a fifteen-asset matrix the fork does
+# not publish; the fork keeps its own assertions on the one artifact it ships.
+test/tool/release_contract_test.dart merge=ours

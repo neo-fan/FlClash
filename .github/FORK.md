@@ -16,6 +16,18 @@ What this fork owns, and why a merge does not pick it up:
   git config merge.ours.driver true
   ```
 
+  Because the merge drops upstream's version of that workflow, its toolchain
+  pins (`FLUTTER_VERSION`, `GO_VERSION`, `NDK_VERSION`) and its build command
+  are not updated for free: after a sync, compare them with upstream's
+  `build.yaml` and carry over anything a release needs. Flutter in particular
+  has to satisfy the `flutter:` constraint in `pubspec.yaml`, and upstream
+  moves the packaging entry point (`dart tool/package.dart <platform>`).
+
+- `test/tool/release_contract_test.dart` is also `merge=ours`: it packages
+  every row of upstream's release matrix and expects the fifteen assets that
+  matrix publishes, which a one-artifact fork does not ship. This side asserts
+  the single APK the fork does publish, and skips the matrix group.
+
 - `android/app/build.gradle.kts` sets `applicationId = "com.follow.clash.homo"`
   so this build installs beside the official app. The `namespace` stays
   `com.follow.clash`, which is where the Kotlin and the manifest live.
