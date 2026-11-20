@@ -16,7 +16,10 @@ env:
   IS_STABLE: ${{ !contains(github.ref, '-') }}
   # See CI Caches in .agents/commands.md.
   BRANCH_CACHE: ${{ !startsWith(github.ref, 'refs/tags/') }}
-  FLUTTER_VERSION: '3.47.6'
+  # Must satisfy the `flutter:` constraint in pubspec.yaml. Upstream raises it
+  # with the SDK, and this file keeps the fork's side across a merge, so the
+  # value has to be carried over by hand.
+  FLUTTER_VERSION: '3.50.0'
   GO_VERSION: '1.27.1'
   NDK_VERSION: r28c
 
@@ -227,6 +230,11 @@ jobs:
             services/helper
             plugins/rust_api/rust
           save-if: ${{ env.BRANCH_CACHE }}
+
+      # plugins/rust_api pulls glib through the desktop stack; without the
+      # pkg-config files glib-sys fails before any test runs.
+      - name: Install Linux build dependencies
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev
 
       - name: Check format
         run: |
