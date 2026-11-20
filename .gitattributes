@@ -1,2 +1,8 @@
 # freezed emits lines of trailing spaces, and generated code is never edited by hand.
 lib/**/generated/** -whitespace
+
+# The fork owns these two files wholesale, so an upstream sync keeps this side
+# instead of conflicting. Merging locally needs `git config merge.ours.driver true`;
+# .github/workflows/sync-upstream.yaml sets it before it merges.
+.github/workflows/build.yaml merge=ours
+.github/release_template.md merge=ours
