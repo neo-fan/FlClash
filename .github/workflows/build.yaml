@@ -433,7 +433,9 @@ jobs:
       - name: Patch release.md
         run: |
           version='${{ steps.release_tag.outputs.version }}'
+          tag='${{ steps.release_tag.outputs.tag }}'
           sed \
+            -e "s|TAG|$tag|g" \
             -e "s|VERSION|$version|g" \
             -e "s|chen08209/FlClash|${{ github.repository }}|g" \
             ./.github/release_template.md >> release.md
