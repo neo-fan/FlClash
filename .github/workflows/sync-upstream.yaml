@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   actions: write
+  issues: write
 
 concurrency:
   group: sync-upstream
@@ -37,13 +38,16 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git remote add upstream https://github.com/chen08209/FlClash.git
+          # .gitattributes keeps this side of build.yaml and release_template.md;
+          # without the driver git treats those two files as a conflict.
+          git config merge.ours.driver true
+          git remote add upstream https://github.com/chen08209/FlClash.git 2>/dev/null || true
           git fetch --no-tags upstream main
           git checkout -B main origin/main
 
           if ! git merge-base --is-ancestor upstream/main HEAD; then
             if ! git merge --no-edit -m "Merge upstream main" upstream/main; then
-              echo "::error::Conflicts with the fork build customizations: $(git diff --name-only --diff-filter=U | tr '\n' ' ')"
+              echo "conflict=$(git diff --name-only --diff-filter=U | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
               git merge --abort || true
               exit 1
             fi
@@ -61,6 +65,29 @@ jobs:
           git tag "$UPSTREAM_TAG"
           git push origin "$UPSTREAM_TAG"
           echo 'changed=true' >> "$GITHUB_OUTPUT"
+
+      # A conflict used to stop the daily sync silently, which is how the fork
+      # sat a release behind without anyone noticing.
+      - name: Report a blocked sync
+        if: failure() && steps.prepare.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONFLICT: ${{ steps.prepare.outputs.conflict }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title='Upstream sync is blocked'
+          if [ -n "${CONFLICT:-}" ]; then
+            reason="Merging upstream/main conflicts in: ${CONFLICT}"
+          else
+            reason='The sync step failed; see the run log for the failing command.'
+          fi
+          body="$(printf '%s\n\nRun: %s\n\nResolve it by hand, then this job resumes on its own.' "$reason" "$RUN_URL")"
+          number="$(gh issue list --state open --search "$title in:title" --json number --jq '.[0].number // empty')"
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi
 
       - name: Trigger the release build
         if: steps.prepare.outputs.changed == 'true'
