@@ -84,21 +84,11 @@ void main() {
     ]);
   });
 
+  // The fork publishes one Android arm64 APK, so its template names one asset.
   test('reads every link of the release notes template', () {
     final names = releaseNotesAssetNames(_read(releaseNotesTemplate), _version);
 
-    expect(names, hasLength(15));
-    expect(names.toSet(), hasLength(15));
-    expect(
-      names,
-      containsAll([
-        'FlClash-0.9.5-windows-arm64-setup.exe',
-        'FlClash-0.9.5-windows-arm64-portable.zip',
-        'FlClash-0.9.5-linux-arm64.AppImage',
-        'FlClash-0.9.5-linux-arm64.deb',
-        'FlClash-0.9.5-linux-arm64.rpm',
-      ]),
-    );
+    expect(names, ['FlClash-0.9.5-android-arm64.apk']);
   });
 
   test('reads both disk images of the Homebrew cask', () {
@@ -138,6 +128,9 @@ void main() {
     );
   });
 
+  // Upstream ships a row per platform and arch; this fork ships a single Android
+  // arm64 artifact, so there is no matrix to package and nothing here to check.
+  // Drop the skip if the fork ever publishes the full matrix again.
   group('a release built by the CI matrix', () {
     late Directory temp;
 
@@ -185,5 +178,5 @@ void main() {
         failure,
       ]);
     });
-  });
+  }, skip: 'the fork releases a single Android arm64 artifact');
 }
