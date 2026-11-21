@@ -440,11 +440,17 @@ jobs:
             -e "s|chen08209/FlClash|${{ github.repository }}|g" \
             ./.github/release_template.md >> release.md
 
-      - name: Generate sha256
+      # A build installed before the packager renamed the APK asks for
+      # `-android-arm64-v8a.apk` and reads this unversioned file; both stay until
+      # those installs have updated, which is the only way they can update.
+      - name: Name the APK as earlier builds look for it
         if: ${{ env.IS_STABLE == 'true' }}
         run: |
           cd ./dist
-          sha256sum ./* > SHA256SUMS
+          version='${{ steps.release_tag.outputs.version }}'
+          cp "FlClash-$version-android-arm64.apk" \
+             "FlClash-$version-android-arm64-v8a.apk"
+          sha256sum ./* | sed 's|  \./|  |' > SHA256SUMS
 
       - name: Release
         if: ${{ env.IS_STABLE == 'true' }}
