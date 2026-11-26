@@ -30,10 +30,6 @@ What this fork owns, and why a merge does not pick it up:
   matrix publishes, which a one-artifact fork does not ship. This side asserts
   the single APK the fork does publish, and skips the matrix group.
 
-- `tool/changelog.dart` is also `merge=ours`: upstream removed its Telegram
-  render target, but this fork still publishes Telegram notes pointing at this
-  repository's releases.
-
 - `android/app/build.gradle.kts` sets `applicationId = "com.follow.clash.homo"`
   so this build installs beside the official app. The `namespace` stays
   `com.follow.clash`, which is where the Kotlin and the manifest live.
@@ -54,5 +50,7 @@ CI does not run `tool/changelog.dart verify`: a fork tag has no
 creates. Release notes fall back to the last 30 commits when the renderer
 cannot derive them, which is why `upload` tolerates that failure.
 
-A failed sync reports in the job summary and an error annotation: this fork
-has Issues disabled, so the workflow cannot open one.
+This fork posts no release to Telegram, so `changelog.dart` follows upstream
+and keeps only its `render release` target. A failed sync reports in the job
+summary and an error annotation: this fork has Issues disabled, so the
+workflow cannot open one.
