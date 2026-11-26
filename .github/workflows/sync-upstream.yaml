@@ -8,7 +8,6 @@ on:
 permissions:
   contents: write
   actions: write
-  issues: write
 
 concurrency:
   group: sync-upstream
@@ -78,20 +77,23 @@ jobs:
       - name: Report a failed sync
         if: failure()
         env:
-          GH_TOKEN: ${{ github.token }}
           CONFLICT: ${{ steps.prepare.outputs.conflict }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          title='Upstream sync is blocked'
           if [ -n "${CONFLICT:-}" ]; then
             reason="Merging upstream/main conflicts in: ${CONFLICT}"
           else
-            reason='The run failed before it could tag or start the build; see the log.'
+            reason='The run failed before it could tag or start the build; see the step log.'
           fi
-          body="$(printf '%s\n\nRun: %s\n\nResolve it by hand, then this job resumes on its own.\n\nIf starting the build answered 422 `Actions has been disabled`, that is the fork activation flag: turn Actions off and on again in Settings, Actions, General.' "$reason" "$RUN_URL")"
-          number="$(gh issue list --state open --search "$title in:title" --json number --jq '.[0].number // empty')"
-          if [ -n "$number" ]; then
-            gh issue comment "$number" --body "$body"
-          else
-            gh issue create --title "$title" --body "$body"
-          fi
+          {
+            echo '### Upstream sync is blocked'
+            echo
+            echo "$reason"
+            echo
+            echo "Run: $RUN_URL"
+            echo
+            echo 'Resolve it by hand, then this job resumes on its own.'
+            echo
+            echo 'If starting the build answered 422 `Actions has been disabled`, that is the fork activation flag: turn Actions off and on again in Settings, Actions, General.'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo '::error title=Upstream sync is blocked::See the job summary and step log.'

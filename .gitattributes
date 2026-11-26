@@ -9,3 +9,5 @@ lib/**/generated/** -whitespace
 # Upstream's release contract test packages a fifteen-asset matrix the fork does
 # not publish; the fork keeps its own assertions on the one artifact it ships.
 test/tool/release_contract_test.dart merge=ours
+# Upstream dropped the Telegram notes renderer; this fork still publishes it.
+tool/changelog.dart merge=ours
