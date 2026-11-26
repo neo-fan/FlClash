@@ -2,7 +2,9 @@
 
 This repository follows `chen08209/FlClash` and publishes its own Android
 arm64 build. `sync-upstream.yaml` merges upstream `main` daily, tags the fork
-commit with the upstream release tag, and dispatches the release build.
+commit with the upstream release tag, and dispatches the release build. The
+dispatch names `$GITHUB_REPOSITORY` explicitly: the sync adds an `upstream`
+remote, and an unqualified `gh workflow run` targets that repository instead.
 
 What this fork owns, and why a merge does not pick it up:
 
