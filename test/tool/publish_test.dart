@@ -220,6 +220,9 @@ void main() {
     return workflow['jobs']['upload']['steps'] as YamlList;
   }
 
+  // This fork publishes a single Android arm64 APK with no Telegram,
+  // Homebrew, fdroid or prerelease-prune steps, so there is no announcement
+  // order here to check.
   test('a release is announced once its packages are out, and pruned last', () {
     final steps = [
       for (final step in releaseSteps()) (step as YamlMap)['name'] as String?,
@@ -234,7 +237,7 @@ void main() {
     expect(announced, greaterThan(at('Push to Homebrew tap')));
     expect(announced, greaterThan(at('Push to fdroid repo')));
     expect(at('Delete superseded prereleases'), steps.length - 1);
-  });
+  }, skip: 'the fork publishes a single APK without those channels');
 
   test('the prune fails when a page of the release list does', () {
     final prune = releaseSteps().cast<YamlMap>().singleWhere(
@@ -243,5 +246,5 @@ void main() {
 
     expect(prune['run'], contains('gh api --paginate'));
     expect(prune['shell'], 'bash', reason: 'GitHub adds pipefail to bash');
-  });
+  }, skip: 'the fork keeps no prereleases to prune');
 }

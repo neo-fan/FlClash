@@ -19,7 +19,7 @@ env:
   # Must satisfy the `flutter:` constraint in pubspec.yaml. Upstream raises it
   # with the SDK, and this file keeps the fork's side across a merge, so the
   # value has to be carried over by hand.
-  FLUTTER_VERSION: '3.50.0'
+  FLUTTER_VERSION: '3.50.1'
   GO_VERSION: '1.27.1'
   NDK_VERSION: r28c
 

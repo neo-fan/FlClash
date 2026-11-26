@@ -30,6 +30,12 @@ What this fork owns, and why a merge does not pick it up:
   matrix publishes, which a one-artifact fork does not ship. This side asserts
   the single APK the fork does publish, and skips the matrix group.
 
+- `test/tool/publish_test.dart` is `merge=ours`: upstream checks that the
+  upload job announces a release on Telegram, Homebrew and fdroid and prunes
+  old prereleases. The fork publishes one Android arm64 APK through none of
+  those channels, so those two workflow-shape checks are skipped here; the
+  tool logic tests still run.
+
 - `android/app/build.gradle.kts` sets `applicationId = "com.follow.clash.homo"`
   so this build installs beside the official app. The `namespace` stays
   `com.follow.clash`, which is where the Kotlin and the manifest live.
